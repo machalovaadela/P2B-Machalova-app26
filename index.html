@@ -2,11 +2,12 @@
 <html lang="cs">
 <head>
 <meta charset="UTF-8">
-<title>Candy Club - objednávky</title>
+<title>Candy Club</title>
 
 <style>
 body {
     font-family: Arial;
+    margin: 0;
     background: linear-gradient(to right, #e3f2fd, #ffffff);
 }
 
@@ -16,11 +17,12 @@ header {
 }
 
 header img {
-    max-width: 250px;
+    width: 220px;
 }
 
 h1 {
     color: #1976d2;
+    margin-top: 10px;
 }
 
 .container {
@@ -39,8 +41,8 @@ h1 {
 }
 
 input {
-    margin: 5px 0;
     padding: 8px;
+    margin: 5px 0;
     width: 100%;
 }
 
@@ -48,18 +50,18 @@ button {
     width: 100%;
     padding: 15px;
     margin-top: 20px;
-    font-size: 18px;
     background: #1976d2;
     color: white;
     border: none;
     border-radius: 10px;
+    font-size: 18px;
 }
 
 #celkem, #pocet {
     text-align: center;
     font-weight: bold;
-    margin-top: 10px;
     color: #1976d2;
+    margin-top: 10px;
 }
 </style>
 
@@ -79,9 +81,9 @@ button {
     <div id="pocet">Počet kusů: 0</div>
 
     <h3>Kontaktní údaje</h3>
-    <input type="text" id="jmeno" placeholder="Jméno a příjmení">
-    <input type="email" id="email" placeholder="E-mail">
-    <input type="tel" id="telefon" placeholder="Telefon">
+    <input id="jmeno" placeholder="Jméno a příjmení">
+    <input id="email" placeholder="E-mail">
+    <input id="telefon" placeholder="Telefon">
 
     <button onclick="odeslatObjednavku()">ODESLAT OBJEDNÁVKU</button>
 
@@ -91,28 +93,36 @@ button {
 let items = [];
 
 async function loadCSV() {
-    const response = await fetch("data_bufet.csv");
-    const text = await response.text();
-    parseCSV(text);
-    renderItems();
+    try {
+        const response = await fetch("data_bufet.csv");
+        const text = await response.text();
+        parseCSV(text);
+        renderItems();
+    } catch {
+        alert("CSV se nenačetlo!");
+    }
 }
 
 function parseCSV(text) {
     const lines = text.split("\n");
+
     for (let i = 1; i < lines.length; i++) {
-        const [nazev, cena] = lines[i].split(";");
-        if(nazev) {
-            items.push({
-                nazev: nazev,
-                cena: parseFloat(cena),
-                mnozstvi: 0
-            });
-        }
+        const line = lines[i].trim();
+        if (!line) continue;
+
+        const [nazev, cena] = line.split(";");
+
+        items.push({
+            nazev: nazev,
+            cena: parseFloat(cena),
+            mnozstvi: 0
+        });
     }
 }
 
 function renderItems() {
     const container = document.getElementById("items");
+    container.innerHTML = "";
 
     items.forEach((item, index) => {
         const div = document.createElement("div");
@@ -120,8 +130,8 @@ function renderItems() {
 
         div.innerHTML =
         `<span>${item.nazev} (${item.cena} Kč)</span>
-        <input type="number" min="0" value="0"
-        onchange="updateItem(${index}, this.value)">`;
+         <input type="number" min="0" value="0"
+         onchange="updateItem(${index}, this.value)">`;
 
         container.appendChild(div);
     });
@@ -143,12 +153,12 @@ function updateSummary() {
 
     document.getElementById("celkem").innerText =
         "Celková cena: " + celkem + " Kč";
+
     document.getElementById("pocet").innerText =
         "Počet kusů: " + pocet;
 }
 
 function odeslatObjednavku() {
-
     let jmeno = document.getElementById("jmeno").value;
     let email = document.getElementById("email").value;
     let telefon = document.getElementById("telefon").value;
@@ -163,10 +173,14 @@ function odeslatObjednavku() {
         .map(i => `${i.nazev}: ${i.mnozstvi} ks`)
         .join("\n");
 
+    if (!objednavka) {
+        alert("Nevybral jsi žádné produkty!");
+        return;
+    }
+
     let celkem = document.getElementById("celkem").innerText;
 
-    let text =
-    `Objednávka:
+    let text = `Objednávka:
 ${objednavka}
 
 ${celkem}
@@ -177,7 +191,7 @@ ${email}
 ${telefon}`;
 
     window.location.href =
-    `mailto:app@kostka-skola.cz?subject=Objednavka&body=` + encodeURIComponent(text);
+    "mailto:app@kostka-skola.cz?subject=Objednavka&body=" + encodeURIComponent(text);
 }
 
 loadCSV();
