@@ -1,183 +1,209 @@
 <!DOCTYPE html>
 <html lang="cs">
 <head>
-<meta charset="UTF-8">
-<title>Objednávka školního bufetu</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CandyClub – Objednávkový systém</title>
 
-<style>
-body {
-  font-family: Arial, sans-serif;
-  background: #f4f7fb;
-}
-h1 {
-  text-align: center;
-  background: #2a72d4;
-  color: white;
-  padding: 20px;
-}
-.container {
-  width: 90%;
-  max-width: 500px;
-  margin: 30px auto;
-  background: white;
-  padding: 25px;
-  border-radius: 12px;
-}
-.item {
-  display: flex;
-  justify-content: space-between;
-  margin: 12px 0;
-  font-size: 18px;
-}
-input[type="number"] {
-  width: 70px;
-  text-align: center;
-}
-#celkem, #pocet {
-  text-align: center;
-  font-size: 22px;
-  margin-top: 15px;
-  font-weight: bold;
-  color: #2a72d4;
-}
-button {
-  width: 100%;
-  padding: 15px;
-  margin-top: 30px;
-  font-size: 24px;
-  background: #ff6b35;
-  color: white;
-  border: none;
-  border-radius: 10px;
-  cursor: pointer;
-}
-button:hover {
-  background: #e85a28;
-}
-</style>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 40px;
+            max-width: 900px;
+        }
+        h1 {
+            text-align: center;
+            margin-bottom: 5px;
+        }
+        #logo {
+            display: block;
+            margin: 0 auto 20px auto;
+            width: 250px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 25px;
+        }
+        th, td {
+            border: 1px solid #ccc;
+            padding: 10px;
+        }
+        th {
+            background: #f5f5f5;
+        }
+        input[type="number"] {
+            width: 60px;
+        }
+        .summary {
+            margin-top: 25px;
+            font-size: 18px;
+            font-weight: bold;
+        }
+        label {
+            font-weight: bold;
+            margin-top: 15px;
+            display: block;
+        }
+        input[type="text"], input[type="email"], input[type="tel"] {
+            width: 100%;
+            padding: 10px;
+            margin-top: 5px;
+        }
+        button {
+            background-color: #d14b7a;
+            color: white;
+            padding: 15px;
+            border: none;
+            width: 100%;
+            font-size: 18px;
+            cursor: pointer;
+            margin-top: 25px;
+        }
+        button:hover {
+            background-color: #b63f68;
+        }
+    </style>
 </head>
 
 <body>
 
-<h1>SŠ Kostka – OBJEDNÁVKY BUFET</h1>
+    <!-- LOGO CANDYCLUB -->
+    <img id="logo" src="logo.png" alt="CandyClub Logo">
 
-<div class="container">
-  <div id="items"></div>
+    <h1>CandyClub – Objednávkový formulář</h1>
 
-  <div id="celkem">Celková cena: 0 Kč</div>
-  <div id="pocet">Počet kusů: 0</div>
+    <!-- TABULKA PRODUKTŮ NAČÍTANÁ Z CSV -->
+    <table id="productTable">
+        <thead>
+            <tr>
+                <th>Produkt</th>
+                <th>Cena</th>
+                <th>Počet kusů</th>
+            </tr>
+        </thead>
+        <tbody></tbody>
+    </table>
 
-  <button onclick="odeslatObjednavku()">ODESLAT OBJEDNÁVKU</button>
-</div>
+    <!-- SOUHRN OBJEDNÁVKY -->
+    <div class="summary">
+        Celkový počet kusů: <span id="totalCount">0</span><br>
+        Celková cena: <span id="totalPrice">0 Kč</span>
+    </div>
 
-<script>
+    <!-- POVINNÁ POLE ZÁKAZNÍKA -->
+    <label>Jméno a příjmení:</label>
+    <input type="text" id="customerName" placeholder="Příjmení Jméno" required>
 
-let items = [];
+    <label>E-mail:</label>
+    <input type="email" id="customerEmail" placeholder="email@domena.cz" required>
 
-// ✅ načítání CSV
-async function loadCSV() {
-  try {
-    const response = await fetch("data_bufet.csv?t=" + Date.now());
-    if (!response.ok) {
-      throw new Error("Soubor nebyl nalezen");
-    }
+    <label>Telefon:</label>
+    <input type="tel" id="customerPhone" placeholder="+420 000 000 000" required>
 
-    const text = await response.text();
-    parseCSV(text);
-    renderItems();
+    <!-- TLAČÍTKO ODESLAT OBJEDNÁVKU (MAILTO) -->
+    <button id="sendOrderBtn">ODESLAT OBJEDNÁVKU</button>
 
-  } catch (err) {
-    console.error(err);
-    alert("Chyba načítání CSV.");
-  }
-}
+    <script>
+        // NAČTENÍ CSV SOUBORU
+        fetch("data_bufet.csv")
+            .then(response => response.text())
+            .then(data => {
+                const rows = data.trim().split("\n").slice(1);
+                const tbody = document.querySelector("#productTable tbody");
 
-// ✅ parsování CSV (přeskočení hlavičky)
-function parseCSV(text) {
-  items = [];
+                rows.forEach(row => {
+                    const [name, price] = row.split(";");
+                    const tr = document.createElement("tr");
 
-  const lines = text.split("\n");
+                    tr.innerHTML = `
+                        <td>${name}</td>
+                        <td>${price} Kč</td>
+                        <td><input type="number" min="0" value="0" data-price="${price}"></td>
+                    `;
 
-  // ⬇️ přeskočíme první řádek (hlavičku)
-  for (let i = 1; i < lines.length; i++) {
-    const line = lines[i].trim();
+                    tbody.appendChild(tr);
+                });
 
-    if (!line) continue;
+                // PŘIDÁNÍ SLADKOSTÍ CANDYCLUB
+                const sweets = [
+                    ["Tyčinka", 22],
+                    ["Lízátko", 12],
+                    ["Cukrová vata", 30]
+                ];
 
-    const [nazev, cena] = line.split(";");
+                sweets.forEach(item => {
+                    const tr = document.createElement("tr");
+                    tr.innerHTML = `
+                        <td>${item[0]}</td>
+                        <td>${item[1]} Kč</td>
+                        <td><input type="number" min="0" value="0" data-price="${item[1]}"></td>
+                    `;
+                    tbody.appendChild(tr);
+                });
 
-    if (nazev && cena) {
-      items.push({
-        nazev: nazev.trim(),
-        cena: parseFloat(cena.replace(",", ".")),
-        mnozstvi: 0
-      });
-    }
-  }
-}
+                document.querySelectorAll("input[type='number']").forEach(input => {
+                    input.addEventListener("input", updateSummary);
+                });
+            });
 
-// ✅ vykreslení
-function renderItems() {
-  const container = document.getElementById("items");
-  container.innerHTML = "";
+        // VÝPOČET SOUHRNU
+        function updateSummary() {
+            let totalCount = 0;
+            let totalPrice = 0;
 
-  items.forEach((item, index) => {
+            document.querySelectorAll("input[type='number']").forEach(input => {
+                const count = Number(input.value);
+                const price = Number(input.dataset.price);
 
-    const div = document.createElement("div");
-    div.className = "item";
+                totalCount += count;
+                totalPrice += count * price;
+            });
 
-    div.innerHTML = `
-      <span>${item.nazev} (${item.cena} Kč)</span>
-      <input type="number" min="0" value="0"
-        onchange="updateItem(${index}, this.value)">
-    `;
+            document.getElementById("totalCount").textContent = totalCount;
+            document.getElementById("totalPrice").textContent = totalPrice + " Kč";
+        }
 
-    container.appendChild(div);
-  });
-}
+        // MAILTO FUNKCE
+        document.getElementById("sendOrderBtn").addEventListener("click", function () {
+            const name = document.getElementById("customerName").value.trim();
+            const email = document.getElementById("customerEmail").value.trim();
+            const phone = document.getElementById("customerPhone").value.trim();
 
-// ✅ změna množství
-function updateItem(index, value) {
-  items[index].mnozstvi = parseInt(value) || 0;
-  updateSummary();
-}
+            if (!name || !email || !phone) {
+                alert("Vyplňte prosím všechna povinná pole.");
+                return;
+            }
 
-// ✅ přepočet
-function updateSummary() {
-  let celkem = 0;
-  let pocet = 0;
+            let orderText = "";
+            document.querySelectorAll("#productTable tbody tr").forEach(row => {
+                const product = row.children[0].textContent;
+                const price = row.children[1].textContent;
+                const count = row.children[2].children[0].value;
 
-  items.forEach(item => {
-    celkem += item.cena * item.mnozstvi;
-    pocet += item.mnozstvi;
-  });
+                if (count > 0) {
+                    orderText += `${product} – ${count} ks – ${price}\n`;
+                }
+            });
 
-  document.getElementById("celkem").innerText =
-    "Celková cena: " + celkem.toFixed(2) + " Kč";
+            const total = document.getElementById("totalPrice").textContent;
 
-  document.getElementById("pocet").innerText =
-    "Počet kusů: " + pocet;
-}
+            const body =
+                "OBJEDNÁVKA CANDYCLUB\n\n" +
+                "Zákazník: " + name + "\n" +
+                "E-mail: " + email + "\n" +
+                "Telefon: " + phone + "\n\n" +
+                "Objednané položky:\n" + orderText + "\n" +
+                "Celková cena: " + total;
 
-// ✅ odeslání
-function odeslatObjednavku() {
-  const objednavka = items
-    .filter(item => item.mnozstvi > 0)
-    .map(item => `${item.nazev}: ${item.mnozstvi} ks`);
+            const mailto =
+                "mailto:app@kostka-skola.cz" +
+                "?subject=Objednávka CandyClub" +
+                "&body=" + encodeURIComponent(body);
 
-  if (objednavka.length === 0) {
-    alert("Nevybral jsi žádné položky!");
-    return;
-  }
-
-  alert("Objednávka:\n\n" + objednavka.join("\n"));
-}
-
-// start
-loadCSV();
-
-</script>
+            window.location.href = mailto;
+        });
+    </script>
 
 </body>
 </html>
-``
