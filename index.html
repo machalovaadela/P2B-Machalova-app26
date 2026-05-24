@@ -17,11 +17,7 @@ header {
 }
 
 header img {
-    width: 220px;
-}
-
-h1 {
-    color: #1976d2;
+    width: 200px;
 }
 
 .container {
@@ -53,10 +49,136 @@ button {
     color: white;
     border: none;
     font-size: 18px;
-    border-radius: 10px;
 }
 
 #celkem, #pocet {
     text-align: center;
     margin-top: 10px;
     font-weight: bold;
+}
+</style>
+</head>
+
+<body>
+
+<header>
+    <!-- ✅ SPRÁVNĚ -->
+    <img src="logo.png">
+    <h1>Candy Club</h1>
+</header>
+
+<div class="container">
+
+    <div id="items"></div>
+
+    <div id="celkem">Celková cena: 0 Kč</div>
+    <div id="pocet">Počet kusů: 0</div>
+
+    <h3>Kontaktní údaje</h3>
+    <input id="jmeno" placeholder="Jméno a příjmení">
+    <input id="email" placeholder="E-mail">
+    <input id="telefon" placeholder="Telefon">
+
+    <button onclick="odeslatObjednavku()">ODESLAT OBJEDNÁVKU</button>
+
+</div>
+
+<script>
+let items = [];
+
+async function loadCSV() {
+    const response = await fetch("data_bufet.csv");
+    const text = await response.text();
+    const lines = text.split("\n");
+
+    for (let i = 1; i < lines.length; i++) {
+        const line = lines[i].trim();
+        if (!line) continue;
+
+        const [nazev, cena] = line.split(";");
+
+        items.push({
+            nazev: nazev,
+            cena: parseFloat(cena),
+            mnozstvi: 0
+        });
+    }
+
+    renderItems();
+}
+
+function renderItems() {
+    const container = document.getElementById("items");
+
+    items.forEach((item, index) => {
+        const div = document.createElement("div");
+
+        div.innerHTML =
+        `<div class="item">
+            <span>${item.nazev} (${item.cena} Kč)</span>
+            <input type="number" min="0"
+            onchange="updateItem(${index}, this.value)">
+        </div>`;
+
+        container.appendChild(div);
+    });
+}
+
+function updateItem(index, value) {
+    items[index].mnozstvi = parseInt(value) || 0;
+    let celkem = 0;
+    let pocet = 0;
+
+    items.forEach(i => {
+        celkem += i.cena * i.mnozstvi;
+        pocet += i.mnozstvi;
+    });
+
+    document.getElementById("celkem").innerText =
+        "Celková cena: " + celkem + " Kč";
+
+    document.getElementById("pocet").innerText =
+        "Počet kusů: " + pocet;
+}
+
+function odeslatObjednavku() {
+    const jmeno = document.getElementById("jmeno").value;
+    const email = document.getElementById("email").value;
+    const telefon = document.getElementById("telefon").value;
+
+    if (!jmeno || !email || !telefon) {
+        alert("Vyplň všechny údaje!");
+        return;
+    }
+
+    const objednavka = items
+        .filter(i => i.mnozstvi > 0)
+        .map(i => `${i.nazev}: ${i.mnozstvi} ks`)
+        .join("\n");
+
+    if (!objednavka) {
+        alert("Nevybral jsi žádné produkty!");
+        return;
+    }
+
+    const text =
+`Objednávka:
+${objednavka}
+
+${document.getElementById("celkem").innerText}
+
+Zákazník:
+${jmeno}
+${email}
+${telefon}`;
+
+    window.location.href =
+    "mailto:app@kostka-skola.cz?subject=Objednavka&body=" +
+    encodeURIComponent(text);
+}
+
+loadCSV();
+</script>
+
+</body>
+</html>
